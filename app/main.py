@@ -170,8 +170,6 @@ async def get_user_posts(name:str,current_user:int = Depends(oauth2.get_current_
 
 
 
-
-
 @app.post("/users",status_code=status.HTTP_201_CREATED)
 async def create_user(user:schemas.NewUser):
     hashed_passwd = utils.hash(user.password)
@@ -283,8 +281,6 @@ async def get_categories():
     return{"all_posts":posts}
 
 
-
-
 @app.post('/retweet/{id}',status_code=status.HTTP_201_CREATED)
 async def retweet(id:int,retweet:schemas.Retweet,current_user:int = Depends(oauth2.get_current_user),):
     cursor.execute("""INSERT INTO retweet (user_id , post_id) VALUES(%s,%s) RETURNING * """,(current_user.id,retweet.post_id))
@@ -307,6 +303,9 @@ def test_function(request: Request, path_parameter: path_param):
     inp_post_response = requests.post(get_inp_url , json=request_example)
     if inp_post_response .status_code == 200:
         print(json.loads(test_get_response.content.decode('utf-8')))'''
+
+
+
 
 
 #@app.post("/vote",status_code=status.HTTP_202_ACCEPTED)
