@@ -1,5 +1,6 @@
 from ast import Str
 from multiprocessing import synchronize
+from typing import List, Optional
 from fastapi import FastAPI,Response,status,HTTPException, Depends, APIRouter
 import psycopg2 
 from psycopg2.extras import RealDictCursor
@@ -11,6 +12,8 @@ from . import models, schemas, utils, oauth2
 from .routers import auth
 from sqlalchemy.orm import session
 from passlib.context import CryptContext
+from .config import settings
+
 
 app = FastAPI()
 
@@ -20,7 +23,7 @@ models.Base.metadata.create_all(bind=engine)
 while(True):
 
     try:
-        connection = psycopg2.connect(host='Localhost',database = 'fastapi',user='postgres',password = 'nagamani',cursor_factory=RealDictCursor)#The password is password of your db
+        connection = psycopg2.connect(host=settings.database_hostname,database = settings.database_name,user=settings.database_username,password = settings.database_password,cursor_factory=RealDictCursor)#The password is password of your db
         cursor = connection.cursor()
         print("Connection was succesfull")
         break
@@ -46,15 +49,24 @@ app.include_router(auth.router)
 
 #gets all the post available which is posted latest
 @app.get("/posts")
-async def get_posts():
-    cursor.execute("""SELECT * FROM posts ORDER BY created_at DESC""")
+async def get_posts(limit:int = 12,skip:int=0,search:Optional[str]=""):
+    cursor.execute("""SELECT * FROM posts WHERE content LIKE %s OR title LIKE %s ORDER BY created_at DESC LIMIT %s OFFSET %s """,(str("%"+search+"%"),str("%"+search+"%"),limit,skip,))
     posts = cursor.fetchall()
     return{"all_posts":posts}
 
 
+'''@app.get("/psts",response_model=schemas.PostOut)
+async def get_psts(db:session = Depends(get_db)):
+    posts = db.query(models.Post).all()
+
+    return{"all_posts":posts}
+'''
+
+
+
 #ccreating post which include the schema of posts which is defined above
 @app.post("/posts",status_code=status.HTTP_201_CREATED)
-async def create_posts(post:schemas.Post,):
+async def create_posts(post:schemas.Post,current_user:int = Depends(oauth2.get_current_user)):
     cursor.execute("""INSERT INTO posts (title , content, published,owner_id,cat_name) VALUES(%s,%s,%s,%s,%s) RETURNING * """,(post.title,post.content,post.published,current_user.id,post.cat_name))
     new_post = cursor.fetchone()
     connection.commit()
@@ -71,7 +83,7 @@ async def get_latest_post():
 
 
 @app.get("/posts/user")
-async def get_user_posts(current_user:int = Depends(oauth2.get_current_user)):
+async def get_user_posts(current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     print(id)
     cursor.execute("""SELECT * FROM posts WHERE owner_id =%s ORDER BY created_at DESC """,(str(current_user.id),))
     user_posts=cursor.fetchall()
@@ -80,7 +92,7 @@ async def get_user_posts(current_user:int = Depends(oauth2.get_current_user)):
 
 
 @app.get("/posts/user/{id}")
-async def get_user_posts(id:int,current_user:int = Depends(oauth2.get_current_user)):
+async def get_user_posts(id:int,current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     if (current_user.admin):
         cursor.execute("""SELECT * FROM posts WHERE owner_id =%s ORDER BY created_at DESC """,(str(id),))
         user_posts=cursor.fetchall()
@@ -88,7 +100,7 @@ async def get_user_posts(id:int,current_user:int = Depends(oauth2.get_current_us
 
 #get the post by postid
 @app.get("/posts/{id}")
-async def get_posts(id:int,response = Response,current_user:int = Depends(oauth2.get_current_user)):
+async def get_posts(id:int,response = Response,current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     cursor.execute("""SELECT * FROM posts WHERE postid = %s """,(str(id),) )
     post = cursor.fetchone()
     if (post == None):
@@ -150,7 +162,7 @@ async def update_post(id:int,updated_post:schemas.PostCreate,db:session = Depend
     return post
 
 @app.get("/posts/category/{name}")
-async def get_user_posts(name:str,current_user:int = Depends(oauth2.get_current_user)):
+async def get_user_posts(name:str,current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     
     cursor.execute("""SELECT * FROM posts WHERE cat_name =%s ORDER BY created_at DESC """,(str(name),))
     cat_posts=cursor.fetchall()
@@ -173,7 +185,7 @@ async def create_user(user:schemas.NewUser):
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"ERROR user with that email already exist, try login")
 
 @app.get('/users/{id}')
-async def get_user(id:int,current_user:int = Depends(oauth2.get_current_user)):
+async def get_user(id:int,current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     cursor.execute("""SELECT * FROM users WHERE id = %s """,(str(id),) )
     user = cursor.fetchone()
     if (user == None):
@@ -182,7 +194,7 @@ async def get_user(id:int,current_user:int = Depends(oauth2.get_current_user)):
     return{"user_details":user}
 
 @app.get("/users")
-async def get_users(current_user:int = Depends(oauth2.get_current_user)):
+async def get_users(current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     print(current_user.admin)
     if (current_user.admin):
         cursor.execute("""SELECT * FROM users ORDER BY id""")
@@ -219,7 +231,7 @@ async def delete_cat(name:str,db:session = Depends(get_db), current_user:int = D
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.put("/categories/{name}",response_model=schemas.CatOut)
-async def update_cat(name:str,updated_cat:schemas.NewCat,db:session = Depends(get_db),current_user:int = Depends(oauth2.get_current_user)):
+async def update_cat(name:str,updated_cat:schemas.NewCat,db:session = Depends(get_db),current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     if (current_user.admin):
 
         cursor.execute("""UPDATE categories SET cat_name = %s, description= %s WHERE cat_name = %s RETURNING *""",(updated_cat.cat_name,updated_cat.description,str(name)))
@@ -246,16 +258,17 @@ async def update_cat(name:str,updated_cat:schemas.NewCat,db:session = Depends(ge
 
 @app.post("/categories",status_code=status.HTTP_201_CREATED)
 async def create_categorie(cat:schemas.NewCat,current_user:int = Depends(oauth2.get_current_user)):
-    try:
-        cursor.execute("""INSERT INTO categories (cat_name,description,owner_id) VALUES(%s,%s,%s) RETURNING * """,(cat.catname,cat.description,current_user.id,))
+    #try:
+        cursor.execute("""INSERT INTO categories (cat_name,description,owner_id) VALUES(%s,%s,%s) RETURNING * """,(cat.cat_name,cat.description,current_user.id,))
         new_cat = cursor.fetchone()
         connection.commit()
         return{"STATUS":"created succesfully","user":new_cat}
-    except:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"ERROR category already exist, try new name")
+    
+    #except:
+        #raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"ERROR category already exist, try new name")
 
 @app.get('/categories/{name}')
-async def get_categorie(name:str,current_user:int = Depends(oauth2.get_current_user)):
+async def get_categorie(name:str,current_user:int = Depends(oauth2.get_current_user),search:Optional[str]=""):
     cursor.execute("""SELECT * FROM categories WHERE cat_name = %s """,(str(name),) )
     cat = cursor.fetchone()
     if (cat == None):
@@ -294,3 +307,6 @@ def test_function(request: Request, path_parameter: path_param):
     inp_post_response = requests.post(get_inp_url , json=request_example)
     if inp_post_response .status_code == 200:
         print(json.loads(test_get_response.content.decode('utf-8')))'''
+
+
+#@app.post("/vote",status_code=status.HTTP_202_ACCEPTED)

@@ -10,6 +10,7 @@ class NewUser(BaseModel):
 
 class UserOut(BaseModel):
     id:int
+    username:str
     email:EmailStr
 
     class Config:
@@ -38,6 +39,15 @@ class Post(PostBase):
     class Config:
         orm_mode = True
 
+'''class PostOut(PostBase):
+    published:Optional[bool]=True
+    postid: int
+    created_at: datetime
+    owner_id: int
+    owner:UserOut
+    class Config:
+        orm_mode = True
+'''
 
 class NewCat(BaseModel):
     cat_name:str
