@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr, conint
 from typing import Optional
 
     
@@ -49,14 +49,19 @@ class Post(PostBase):
         orm_mode = True
 '''
 
+class Vote(BaseModel):
+    post_id:int
+    dir:conint(ge=0,le=1)
+
+
+
 class NewCat(BaseModel):
     cat_name:str
     description: str
 
 class Retweet(BaseModel):
-    user_id:int
     post_id:int
-    created_at: datetime
+    dir:conint(ge=0,le=1)
 
 
 class CatOut(BaseModel):

@@ -280,7 +280,7 @@ async def get_categories():
     posts = cursor.fetchall()
     return{"all_posts":posts}
 
-
+'''
 @app.post('/retweet/{id}',status_code=status.HTTP_201_CREATED)
 async def retweet(id:int,retweet:schemas.Retweet,current_user:int = Depends(oauth2.get_current_user),):
     cursor.execute("""INSERT INTO retweet (user_id , post_id) VALUES(%s,%s) RETURNING * """,(current_user.id,retweet.post_id))
@@ -288,7 +288,7 @@ async def retweet(id:int,retweet:schemas.Retweet,current_user:int = Depends(oaut
     connection.commit()
     return{"retweet":"retweeted succesfully","post":new_post}
 
-'''import requests
+import requests
 
 def test_function(request: Request, path_parameter: path_param):
 
@@ -304,8 +304,51 @@ def test_function(request: Request, path_parameter: path_param):
     if inp_post_response .status_code == 200:
         print(json.loads(test_get_response.content.decode('utf-8')))'''
 
+@app.post("/vote",status_code=status.HTTP_201_CREATED)
+async def vote(vote:schemas.Vote,db:session = Depends(get_db),current_user:int = Depends(oauth2.get_current_user)):
+    post = db.query(models.Post).filter(models.Post.postid == vote.post_id).first()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Post does not exist")
+
+    vote_query = db.query(models.Vote).filter(models.Vote.post_id ==vote.post_id,models.Vote.user_id==current_user.id)
+    found_vote = vote_query.first()
+    if (vote.dir == 1):
+        if (found_vote):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"USER {current_user.id} ALREADY VOTED ON THIS POST {vote.post_id}")
+        new_vote = models.Vote(post_id=vote.post_id,user_id=current_user.id)
+        db.add(new_vote)
+        db.commit()
+        return {"status":"succesfully voted"}
+    else:
+        if not found_vote:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"vote not exist")
+
+        vote_query.delete(synchronize_session=False)
+        db.commit()
+
+        return {"status":"successfully removed vote"}
 
 
+@app.post("/retweet",status_code=status.HTTP_201_CREATED)
+async def retweet(retweet:schemas.Retweet,db:session = Depends(get_db),current_user:int = Depends(oauth2.get_current_user)):
+    post = db.query(models.Post).filter(models.Post.postid == retweet.post_id).first()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Post does not exist")
 
+    re_query = db.query(models.Retweet).filter(models.Retweet.post_id ==retweet.post_id,models.Retweet.user_id==current_user.id)
+    found_re = re_query.first()
+    if (retweet.dir == 1):
+        if (found_re):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"USER {current_user.id} ALREADY RETWEETED THIS POST {retweet.post_id}")
+        new_tweet = models.Retweet(post_id=retweet.post_id,user_id=current_user.id)
+        db.add(new_tweet)
+        db.commit()
+        return {"status":"succesfully retweeted"}
+    else:
+        if not found_re:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"tweet not exist")
 
-#@app.post("/vote",status_code=status.HTTP_202_ACCEPTED)
+        re_query.delete(synchronize_session=False)
+        db.commit()
+
+        return {"status":"successfully removed tweet"}
