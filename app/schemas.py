@@ -7,6 +7,10 @@ class NewUser(BaseModel):
     username:str
     email: EmailStr
     password: str
+    admin:Optional[bool]=False
+    description: Optional[str]=False
+
+
 
 class UserOut(BaseModel):
     id:int
@@ -32,22 +36,17 @@ class PostDel(PostBase):
 
 class Post(PostBase):
     published:Optional[bool]=True
-    postid: int
-    created_at: datetime
-    owner_id: int
     
     class Config:
         orm_mode = True
 
-'''class PostOut(PostBase):
-    published:Optional[bool]=True
+class PostOut(Post):
     postid: int
     created_at: datetime
     owner_id: int
-    owner:UserOut
     class Config:
         orm_mode = True
-'''
+
 
 class Vote(BaseModel):
     post_id:int
@@ -65,7 +64,6 @@ class Retweet(BaseModel):
 
 
 class CatOut(BaseModel):
-    cat_id:int
     description: str
     owner_id:int   
     cat_name:str
@@ -80,6 +78,7 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token:str
     token_type: str
+    user_name:str
 
 
 class TokenData(BaseModel):

@@ -12,7 +12,7 @@ class Post(Base):
     postid = Column(Integer, primary_key=True, nullable=False)
     title = Column(String, nullable=True)
     content = Column(String, nullable=False)
-    published = Column(Boolean, server_default='TRUE', nullable=False)
+    published = Column(Boolean, server_default='FALSE', nullable=False)
     created_at = Column(TIMESTAMP(timezone=True),
                         nullable=True, server_default=text('now()'))
     owner_id = Column(Integer, ForeignKey(
@@ -20,13 +20,12 @@ class Post(Base):
     cat_name = Column(String, ForeignKey(
         "categories.cat_name", ondelete="CASCADE"), nullable=False)
     owner = relationship("User")
-    votes = Column(Integer, nullable=True)
 
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, nullable=False)
-    user_name = Column(String, nullable=True)
+    user_name = Column(String, nullable=True,unique=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -41,7 +40,6 @@ class Vote(Base):
         "users.id", ondelete="CASCADE"), primary_key=True)
     post_id = Column(Integer, ForeignKey(
         "posts.postid", ondelete="CASCADE"), primary_key=True)
-    
 
 class Retweet(Base):
     __tablename__ = "retweet"
