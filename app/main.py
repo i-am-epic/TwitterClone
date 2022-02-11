@@ -71,7 +71,7 @@ async def create_posts(post:schemas.Post,current_user:int = Depends(oauth2.get_c
     new_post = cursor.fetchone()
     connection.commit()
     #print(current_user.email)
-    return{"post":"created succesfully","post":new_post}
+    return{"status":"created succesfully","post":new_post}
 
 
 #gets the latest post by the id
@@ -337,18 +337,52 @@ async def retweet(retweet:schemas.Retweet,db:session = Depends(get_db),current_u
 
     re_query = db.query(models.Retweet).filter(models.Retweet.post_id ==retweet.post_id,models.Retweet.user_id==current_user.id)
     found_re = re_query.first()
+    get_new_post = await get_latest_post()
+    new_post_id = get_new_post["latest_post"]["postid"]
+    print(new_post_id)
     if (retweet.dir == 1):
         if (found_re):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"USER {current_user.id} ALREADY RETWEETED THIS POST {retweet.post_id}")
         new_tweet = models.Retweet(post_id=retweet.post_id,user_id=current_user.id)
         db.add(new_tweet)
         db.commit()
-        return {"status":"succesfully retweeted"}
+        new_post = await get_posts(retweet.post_id) 
+        title,content,cat_name = new_post["post_details"]["title"],new_post["post_details"]["content"],new_post["post_details"]["cat_name"]
+        keys = ['title', 'content', 'cat_name']
+        post_req = {x:dict(new_post["post_details"])[x] for x in keys}
+        post_req["published"]=True
+        cursor.execute("""INSERT INTO posts (title , content, published,owner_id,cat_name) VALUES(%s,%s,%s,%s,%s) RETURNING * """,(post_req["title"],post_req["content"],post_req["published"],current_user.id,post_req["cat_name"]))
+        #created_post =await create_posts(post_req)
+        #print(dict(created_post["post"]))
+        new_posts = cursor.fetchone()
+        connection.commit()
+        new_post_id=dict(new_posts)["postid"]
+
+        #print(current_user.email)
+        return{"status":"retweeted succesfully","post":new_post}
+
+        #return {"status":"succesfully retweeted"}
+
+
     else:
         if not found_re:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"tweet not exist")
+        print(new_post_id)
+        print("del")
 
-        re_query.delete(synchronize_session=False)
-        db.commit()
+        if new_post_id!=0:
+            cursor.execute("""DELETE FROM posts WHERE postid  = %s  RETURNING *""",(str(new_post_id),))
+            deleted_post = cursor.fetchone()
+            if deleted_post==None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"ERROR post of id:{new_post_id} not found")
+            connection.commit()
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-        return {"status":"successfully removed tweet"}
+            '''deleted_post = await delete_post(new_post_id)
+            print(str(delete_post)+"deleted")
+            re_query.delete(synchronize_session=False)
+            db.commit()
+            return {"status":"successfully removed tweet"}'''
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Post does not exist")
+
