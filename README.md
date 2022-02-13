@@ -14,16 +14,17 @@ Basic CRUD operation on posts,users,votes,category,retweet.
 4.DELETE
 
 ### Some of the defined api calls are listed:
-Root_url: http://127.0.0.1:8000/ = {{URL}}
-login: {{URL}}login, body:form_type:key username:... ,password:....
-signup: {{URL}}users, body:{
+```Root_url: http://127.0.0.1:8000/ = {{URL}}```
+```login: {{URL}}login, body:form_type:key username:... ,password:....```
+```signup: {{URL}}users, body:{
                                 "username":"admin1",
                                 "email":"admin1@gmail.com",
                                 "password":"password",
                                 "admin":"True",
                                 "description":"i am admin"
                             }
-get_all post:{{URL}}posts?skip=0&limit=10&search=input.
+```
+```get_all post:{{URL}}posts?skip=0&limit=10&search=input.```
 .
 .
 .
