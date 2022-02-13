@@ -34,6 +34,7 @@ Fastapi
 psycopg2  drivers //newer version is available 
 pydantic
 uvicorn
+others are listed in  /required.txt
 
 
 
