@@ -49,5 +49,7 @@ Default location/url http://127.0.0.1:8000/ [Localhost]
 ```bash
 USE POSTMAN FOR API HANDELING.
 ```
+## Functions available
+![alt text](https://github.com/i-am-epic/TwitterClone/blob/main/api%20functions.png)
 
 
