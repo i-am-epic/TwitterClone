@@ -1,8 +1,9 @@
-# Twitter_CLONE
+# TWITTER_API
 
 Simple Twitter clone API  using Fastapi
 
-This is a basic api which has major features of a twitter(social media app) using jwt token as authentication.
+This is a basic api which has major features of a twitter(social media app) using jwt token as authentication.It is
+microblogging and social networking service on which users post and interact with messages known as "tweets". Registered users can post, like, and retweet tweets, but unregistered users can only read those that are publicly available.
 
 ## Features
 
@@ -39,4 +40,4 @@ USE POSTMAN FOR API HANDELING.
 ## Functions available
 ![alt text](https://github.com/i-am-epic/TwitterClone/blob/main/api%20functions.png)
 
-
+#Any contribution is appretiated
